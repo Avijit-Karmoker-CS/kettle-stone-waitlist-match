@@ -109,7 +109,7 @@ def read_table(path, kind, settings):
         else:
             index[canon] = found
     optional = {"waitlist": {"line"},
-                "appointments": {"appointment_id", "client_id", "rebooked_into",
+                "appointments": {"appointment_id", "client_id", "rebooked_into", "desk_notes",
                                  "confirmation", "length_min"},
                 "openings": {"opening_id", "cancelled_at", "hours_notice", "kind",
                              "length_min"}}.get(kind, set())
@@ -143,8 +143,24 @@ def _name_date(path):
         return None
 
 
-def newest_file(folder, words):
-    """Feature 3: newest file whose name contains one of the words."""
+def _mtime(path):
+    """Last change time. A Numbers file can be a folder (package): use its newest part."""
+    t = os.path.getmtime(path)
+    if os.path.isdir(path):
+        for base, _dirs, files in os.walk(path):
+            for f in files:
+                try:
+                    t = max(t, os.path.getmtime(os.path.join(base, f)))
+                except OSError:
+                    pass
+    return t
+
+
+def files_like(folder, words):
+    """All files of one kind, newest first.
+
+    Newest means: the date in the file name, or (if the name has no date) the day
+    the file was saved. A file saved later the same day wins."""
     found = []
     for path in glob.glob(os.path.join(folder, "*")):
         base = plain(os.path.basename(path))
@@ -153,12 +169,17 @@ def newest_file(folder, words):
         if not os.path.splitext(path)[1].lower() in (".csv", ".numbers", ".xlsx", ".xls", ".txt", ".tsv"):
             continue
         if any(w in base for w in words):
-            nd = _name_date(path)
-            found.append(((nd or dt.date.min), os.path.getmtime(path), path))
-    if not found:
-        return None
-    found.sort()
-    return found[-1][2]
+            mt = _mtime(path)
+            nd = _name_date(path) or dt.date.fromtimestamp(mt)
+            found.append((nd, mt, path))
+    found.sort(reverse=True)
+    return [f[2] for f in found]
+
+
+def newest_file(folder, words):
+    """Feature 3: the newest file whose name contains one of the words."""
+    found = files_like(folder, words)
+    return found[0] if found else None
 
 
 # -------------------------------------------------------------- values

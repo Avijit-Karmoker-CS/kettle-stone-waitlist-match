@@ -52,12 +52,24 @@ class Desk:
     # ------------------------------------------------------------ loading
     def _signature(self):
         sig = [self.today().isoformat()]
+        from .files import _mtime
         for folder in (self.data, self.settings_dir):
             for f in sorted(glob.glob(os.path.join(folder, "*"))):
-                if os.path.isfile(f):
+                name = os.path.basename(f)
+                if name in ("logs", "reports", "backups", ".work") or name.startswith("."):
+                    continue
+                try:
                     st = os.stat(f)
-                    sig.append((f, st.st_mtime, st.st_size))
+                    sig.append((f, _mtime(f), st.st_size if os.path.isfile(f) else 0))
+                except OSError:
+                    pass
         return tuple(sig)
+
+    def version(self):
+        """A short code that changes whenever a file in Data or settings changes."""
+        import hashlib
+        sig = self._signature()[1:]
+        return hashlib.sha1(repr(sig).encode()).hexdigest()[:12]
 
     def load(self):
         """Read settings and files. Re-reads only when a file has changed."""

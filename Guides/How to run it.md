@@ -42,6 +42,8 @@ Either way, a green **Waitlist Match** icon is now on the Desktop. It also opens
 1. Open the **Data** folder.
 2. Copy the waitlist, the booking export and (for a test run) the late-openings file into it.
 3. CSV or Numbers files both work. Excel files must be saved as CSV first.
+4. **Keep older booking exports in Data.** The program reads all of them together, so it still knows who got a spot weeks ago. For the waitlist and the openings, only the newest file is used. You can leave older ones there or move them out.
+5. The window notices new files by itself within a few seconds. You don't need to close and reopen it.
 
 ## Step 4a: Match a list of openings (test run)
 

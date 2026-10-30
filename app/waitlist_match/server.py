@@ -38,6 +38,8 @@ class App:
         d = self.desk
         if path == "/api/ping":
             return {"ok": True}
+        if path == "/api/version":
+            return {"v": d.version()}
         if path == "/api/status":
             return {"check": d.self_check(), "addons": d.addons(), "now": d.now().isoformat(sep=" ")}
         if path == "/api/therapists":
@@ -82,7 +84,8 @@ class App:
                 res = c.match(op)
                 d.log_run(op, res, "openings file")
                 out.append(d.present(s, c, res))
-            return {"file": os.path.basename(c.openings_path) if c.openings_path else None, "openings": out}
+            return {"file": os.path.basename(c.openings_path) if c.openings_path else None, "openings": out,
+                    "warnings": [w for w in c.warnings if w.startswith("More than one")] + c.problems}
         raise FileProblem("Unknown request.")
 
 

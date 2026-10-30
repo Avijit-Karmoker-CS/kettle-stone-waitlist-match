@@ -1,9 +1,10 @@
 """The matching engine: clean the waitlist, then find who fits an opening."""
 import datetime as dt
+import os
 import re
 from dataclasses import dataclass, field
 
-from .files import (FileProblem, newest_file, parse_date, parse_datetime, parse_line_date,
+from .files import (FileProblem, files_like, newest_file, parse_date, parse_datetime, parse_line_date,
                     parse_number, parse_time, phone_digits, pretty_phone, read_table)
 from .settings import plain
 from .shorthand import DAYS_ORDER, Needs, ShorthandReader
@@ -159,8 +160,17 @@ class Clinic:
         self._load()
 
     # ------------------------------------------------------------- loading
+    def _pick(self, words, label):
+        """Use the newest file of one kind; warn when older ones are still in Data."""
+        found = files_like(self.data, words)
+        if len(found) > 1:
+            older = ", ".join(os.path.basename(f) for f in found[1:])
+            self.warnings.append(f"More than one {label} file in the Data folder. Using the newest: "
+                                 f"{os.path.basename(found[0])}. Move the older one out of Data: {older}.")
+        return found[0] if found else None
+
     def _load(self):
-        self.waitlist_path = newest_file(self.data, ["waitlist", "wait list", "wait-list"])
+        self.waitlist_path = self._pick(["waitlist", "wait list", "wait-list"], "waitlist")
         if not self.waitlist_path:
             self.problems.append("No waitlist file in the Data folder. Save the typed waitlist "
                                  "there as CSV (name it waitlist.csv).")
@@ -169,16 +179,22 @@ class Clinic:
                 self._load_waitlist(self.waitlist_path)
             except FileProblem as exc:
                 self.problems.append(str(exc))
-        self.appointments_path = newest_file(self.data, ["appointment", "booking", "export", "kneadly", "daily-report", "daily report"])
-        if not self.appointments_path:
+        # Booking exports add up: an older export still shows who got in earlier.
+        # Read them all, newest first; the same appointment in two files counts once.
+        booking_files = files_like(self.data, ["appointment", "booking", "export", "kneadly",
+                                               "daily-report", "daily report"])
+        self.appointments_paths = booking_files
+        self.appointments_path = booking_files[0] if booking_files else None
+        if not booking_files:
             self.warnings.append("No booking export in the Data folder. People who booked since "
                                  "joining the list cannot be found until Julie saves one there.")
-        else:
+        seen = set()
+        for path in booking_files:
             try:
-                self._load_appointments(self.appointments_path)
+                self._load_appointments(path, seen)
             except FileProblem as exc:
                 self.problems.append(str(exc))
-        self.openings_path = newest_file(self.data, ["late-opening", "late opening", "openings"])
+        self.openings_path = self._pick(["late-opening", "late opening", "openings"], "openings")
         if self.openings_path:
             try:
                 self._load_openings(self.openings_path)
@@ -197,9 +213,15 @@ class Clinic:
                                    phone_digits(r.get("phone", "")), r.get("phone", ""),
                                    r.get("notes", ""), needs))
 
-    def _load_appointments(self, path):
+    def _load_appointments(self, path, seen=None):
+        seen = set() if seen is None else seen
         rows = read_table(path, "appointments", self.s)
         for r in rows:
+            aid = (r.get("appointment_id") or "").strip()
+            if aid:
+                if aid in seen:
+                    continue
+                seen.add(aid)
             r["_date"] = parse_date(r.get("date"))
             r["_start"] = parse_time(r.get("start"))
             r["_booked"] = parse_datetime(r.get("booked_at"))
@@ -215,7 +237,7 @@ class Clinic:
             date = parse_date(r.get("date"))
             start = parse_time(r.get("start"))
             if not (therapist and date and start):
-                self.warnings.append(f"Opening row {i} in {path.rsplit('/', 1)[-1]} is missing the "
+                self.warnings.append(f"Opening row {i} in {os.path.basename(path)} is missing the "
                                      "therapist, date or time and was skipped.")
                 continue
             length = int(parse_number(r.get("length_min"), self.s.default_length))
@@ -305,6 +327,8 @@ class Clinic:
                 p.days = set(n.days)
             if n.not_days:
                 p.not_days = set(n.not_days) if not p.not_days else p.not_days | n.not_days
+            if n.allow_days:
+                p.not_days = set(p.not_days) - n.allow_days
             for attr in ("earliest", "latest_start", "end_by"):
                 if getattr(n, attr) is not None:
                     setattr(p, attr, getattr(n, attr))
@@ -376,7 +400,12 @@ class Clinic:
             if first_ok and sur and len(sur) > 1 and al == sur:
                 sure.append(a)
             elif first_ok and sur and (len(sur) == 1 and al[:1] == sur or _close(al, sur)):
-                unsure.append(a)
+                # Spelled a little differently. If the desk filled it from the waitlist,
+                # it is this person; otherwise hold them back for a check by hand.
+                if len(sur) > 1 and "waitlist" in plain(a.get("desk_notes", "")):
+                    sure.append(a)
+                else:
+                    unsure.append(a)
             elif al == sur and len(sur) > 1 and af[:3] == f[:3] and not first_ok:
                 unsure.append(a)
         sure.sort(key=lambda a: a["_booked"])

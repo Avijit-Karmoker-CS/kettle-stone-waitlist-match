@@ -40,6 +40,7 @@ class Needs:
     prenatal: bool = False
     days: set = None                # allowed days
     not_days: set = None            # excluded days
+    allow_days: set = None          # "can do Thurs now": a day that is no longer excluded
     earliest: dt.time = None        # start at or after
     latest_start: dt.time = None    # start at or before
     end_by: dt.time = None          # finished by
@@ -345,6 +346,8 @@ class ShorthandReader:
         T(state, r"\b(?:wkdays?|weekdays?|week days?|mon\s*-\s*fri|m-f)\b", lambda m: add_days("days", set(WEEKDAYS)))
         T(state, r"\b(?:wkends?|weekends?)\b", lambda m: add_days("days", {"Sat", "Sun"}))
         DAYLIST = self.DAY + r"\b(?:\s*(?:/|,|or|and|&|\+)\s*" + self.DAY + r"\b)*"
+        T(state, r"\b(?:can do|can now do|can also do|ok for|okay for|can make|now ok for)\s+(" + DAYLIST + r")(?:\s*(?:now|too|also|as well|again))?",
+          lambda m: add_days("allow_days", self._days_in(m.group(1))))
         T(state, r"\b(?:not|no|except|can'?t do|cant do|can'?t|cant|never|but not)\s+(" + DAYLIST + r")",
           lambda m: add_days("not_days", self._days_in(m.group(1))))
         T(state, r"\b" + DAYLIST + r"(?:\s*only)?", lambda m: add_days("days", self._days_in(m.group(0))))

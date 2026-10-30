@@ -198,6 +198,24 @@ function show(){
 window.addEventListener("hashchange", show);
 setInterval(()=>fetch("/api/ping").catch(()=>{}), 60000);
 
+/* Notice new or changed files in the Data folder and refresh the screen by itself. */
+let DATA_V = null;
+async function watchFiles(){
+  try {
+    const r = await (await fetch("/api/version")).json();
+    if (DATA_V && r.v !== DATA_V) {
+      toast("New files found in the Data folder. The screen is updated.", 4000);
+      const v = (location.hash || "#home").slice(1) || "home";
+      if (v === "reports") { $("#fileBody").innerHTML = ""; loadSummary(); if (FILE_RAN) runFile(); }
+      else if (v !== "find" && v !== "add") show();
+      try { META = await api("/api/therapists"); } catch(e) {}
+    }
+    DATA_V = r.v;
+  } catch(e) {}
+}
+setInterval(watchFiles, 4000);
+let FILE_RAN = false;
+
 /* ---------- opening form (used on Find and Morning) ---------- */
 function openingForm(el, onResult, withTitle){
   const st = {therapist:"", length:META.default_length, kind:"late cancel"};
@@ -350,8 +368,10 @@ async function loadSummary(){
    <p class="small muted">${s.late_cancels} late cancellations and ${s.no_shows} no-shows. ${s.names_shown} names shown, ${s.offers_made} offers made. Source: ${esc(s.source || "no booking file")}.</p>`;
 }
 async function runFile(){
+  FILE_RAN = true;
   const r = await api("/api/file-openings");
-  const box = $("#fileBody"); box.innerHTML = r.file ? `<p class="small muted">${esc(r.file)} · ${r.openings.length} openings</p>` : `<p class="small muted">No openings file in the Data folder.</p>`;
+  const box = $("#fileBody"); box.innerHTML = r.file ? `<p class="small muted">Using <b>${esc(r.file)}</b> · ${r.openings.length} openings</p>` : `<p class="small muted">No openings file in the Data folder.</p>`;
+  (r.warnings || []).forEach(w => box.innerHTML += `<div class="note warn">${esc(w)}</div>`);
   r.openings.forEach(o => { const c = resultCard(o); c.querySelector("b").textContent = (o.label ? o.label+" · " : "") + o.title; box.appendChild(c); });
 }
 async function loadAddons(){
