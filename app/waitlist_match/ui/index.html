@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waitlist Match</title>
+<style>
+:root{
+  --bg:#f6f4f0; --card:#ffffff; --ink:#1f2421; --muted:#5f6763; --line:#e3dfd8;
+  --accent:#2f6b5a; --accent-ink:#ffffff; --accent-soft:#e3efe9;
+  --warn:#8a5a00; --warn-soft:#fbf1dc; --bad:#a12d2d; --bad-soft:#f8e3e1;
+  --ok:#2f6b5a; --lock:#b9b4ab; --radius:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 "Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header h1{font-size:17px;margin:0;font-weight:600}
+header .sub{color:var(--muted);font-size:13px}
+header nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+header nav a{font-size:13px;color:var(--muted);text-decoration:none;padding:6px 8px;border-radius:8px}
+header nav a.on,header nav a:hover{background:var(--accent-soft);color:var(--accent)}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+h2{font-size:20px;margin:4px 0 12px}
+h3{font-size:15px;margin:0 0 8px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big button{font-size:18px;padding:22px 14px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card);cursor:pointer;text-align:left;font-weight:600;color:var(--ink)}
+.big button span{display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:4px}
+.big button:hover{border-color:var(--accent);background:var(--accent-soft)}
+button,.btn{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:8px 14px;color:var(--ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;padding:10px 18px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pills button{padding:8px 14px;border-radius:999px}
+.pills button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+input,select,textarea{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);width:100%}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
+.status{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px}
+.status.ready{background:var(--accent-soft);color:var(--ok)}
+.status.notready{background:var(--bad-soft);color:var(--bad)}
+.note{padding:10px 12px;border-radius:10px;font-size:14px;margin:8px 0}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--bad-soft);color:var(--bad)}
+.note.ok{background:var(--accent-soft);color:var(--ok)}
+.result-title{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.result-title b{font-size:17px}
+.person{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
+.person.current{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.person.locked{opacity:.55}
+.person .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.person .name{font-size:17px;font-weight:600}
+.person .phone{font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+.person .why{font-size:13px;color:var(--muted);margin-top:4px}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:middle}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.actions button{padding:6px 12px;font-size:14px}
+.actions button.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip{font-size:12px;color:var(--muted);margin-left:auto}
+.maybe{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.maybe .person{background:#faf9f6;border-style:dashed}
+.nobody{font-size:16px;padding:8px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi b{display:block;font-size:24px}
+.kpi span{font-size:13px;color:var(--muted)}
+.hidden{display:none!important}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:20}
+.link{background:none;border:none;color:var(--accent);padding:0;font-size:13px;text-decoration:underline}
+@media print{header,.noprint{display:none!important}body{background:#fff}.card{border:none}}
+@media (max-width:560px){.big{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Waitlist Match</h1><div class="sub" id="clinicLine">Kettle &amp; Stone · front desk</div></div>
+  <nav>
+    <a href="#home" data-nav="home">Home</a>
+    <a href="#find" data-nav="find">Find people</a>
+    <a href="#morning" data-nav="morning">Morning list</a>
+    <a href="#add" data-nav="add">Add to waitlist</a>
+    <a href="#lists" data-nav="lists">Cross-off list</a>
+    <a href="#reports" data-nav="reports">Reports</a>
+    <a href="#addons" data-nav="addons">Add-ons</a>
+  </nav>
+</header>
+<main>
+
+<!-- HOME -->
+<section id="v-home">
+  <div class="card">
+    <div class="result-title"><h2 style="margin:0">Good day</h2><span id="readyBadge" class="status">Checking…</span></div>
+    <div id="homeNotes"></div>
+    <div class="small muted" id="homeInfo"></div>
+  </div>
+  <div class="big">
+    <button onclick="go('find')">Find people for a slot<span>Someone cancelled. Who should get the offer?</span></button>
+    <button onclick="go('morning')">Morning list<span>Overnight cancellations and tomorrow's call list</span></button>
+    <button onclick="go('add')">Add to waitlist<span>Name, phone and a note in your usual shorthand</span></button>
+    <button onclick="go('lists')">Cross-off list<span>Who to take out of the notebook, and why</span></button>
+  </div>
+</section>
+
+<!-- FIND -->
+<section id="v-find" class="hidden">
+  <div class="card noprint" id="findForm"></div>
+  <div id="findResult"></div>
+</section>
+
+<!-- MORNING -->
+<section id="v-morning" class="hidden">
+  <div class="card noprint">
+    <h2>Morning list</h2>
+    <p class="small muted" style="margin-top:-6px">Enter each overnight cancellation you see in Kneadly or on the voicemail. Names appear right away.</p>
+    <div id="morningForm"></div>
+  </div>
+  <div id="morningAuto"></div>
+  <div id="morningList"></div>
+  <div class="card" id="noshowCard"></div>
+</section>
+
+<!-- ADD -->
+<section id="v-add" class="hidden">
+  <div class="card">
+    <h2>Add to waitlist</h2>
+    <div class="row">
+      <div><label for="addPhone">Phone</label><input id="addPhone" autocomplete="off" placeholder="506-555-0123"></div>
+      <div><label for="addName">Name</label><input id="addName" autocomplete="off" placeholder="First and last name"></div>
+    </div>
+    <div id="lookupBox"></div>
+    <label for="addNote">Note (your usual shorthand)</label>
+    <input id="addNote" autocomplete="off" placeholder="e.g. any - 60 - AM - not Thurs">
+    <p class="small muted">Write what they can do: therapist, days, times, length, notice. Health details stay in the notebook only if you need them; they are never shown on screen.</p>
+    <button class="primary" onclick="addPerson()">Add to the list</button>
+    <div id="addDone"></div>
+  </div>
+</section>
+
+<!-- LISTS -->
+<section id="v-lists" class="hidden">
+  <div class="card">
+    <div class="result-title"><h2 style="margin:0">Keeping the list current</h2><button class="noprint" onclick="window.print()">Print</button></div>
+    <div class="tabs noprint" id="listTabs"></div>
+    <div id="listBody"></div>
+  </div>
+</section>
+
+<!-- REPORTS -->
+<section id="v-reports" class="hidden">
+  <div class="card">
+    <div class="result-title"><h2 style="margin:0">Monthly results</h2>
+      <input type="month" id="monthPick" style="width:auto" onchange="loadSummary()"></div>
+    <div id="summaryBody" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h3>Openings file</h3>
+    <p class="small muted">If a list of late openings is saved in the Data folder, match all of them at once.</p>
+    <button onclick="runFile()">Match the openings file</button>
+    <div id="fileBody"></div>
+  </div>
+</section>
+
+<!-- ADDONS -->
+<section id="v-addons" class="hidden">
+  <div class="card"><h2>Add-ons</h2><div id="addonsBody"></div></div>
+  <div class="card"><h3>Self-check</h3><div id="selfBody"></div></div>
+</section>
+
+</main>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let META = {therapists:[], default_length:60, today:"", now:""};
+
+async function api(path, body){
+  const opt = body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {};
+  const r = await fetch(path, opt);
+  const j = await r.json();
+  if (j && j.error) { toast(j.error, 6000); throw new Error(j.error); }
+  return j;
+}
+function toast(msg, ms=2600){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.add("hidden"), ms); }
+function go(v){ location.hash = v; }
+function show(){
+  const v = (location.hash || "#home").slice(1) || "home";
+  document.querySelectorAll("main>section").forEach(s => s.classList.toggle("hidden", s.id !== "v-"+v));
+  document.querySelectorAll("[data-nav]").forEach(a => a.classList.toggle("on", a.dataset.nav === v));
+  ({home:loadHome, find:()=>{}, morning:loadMorning, add:()=>$("#addPhone").focus(), lists:loadLists, reports:loadReports, addons:loadAddons}[v] || loadHome)();
+}
+window.addEventListener("hashchange", show);
+setInterval(()=>fetch("/api/ping").catch(()=>{}), 60000);
+
+/* ---------- opening form (used on Find and Morning) ---------- */
+function openingForm(el, onResult, withTitle){
+  const st = {therapist:"", length:META.default_length, kind:"late cancel"};
+  const ths = META.therapists.map(t => `<button type="button" data-t="${esc(t)}">${esc(t.split(" ")[0])}</button>`).join("");
+  const lens = [30,45,60,90].map(n => `<button type="button" data-l="${n}" class="${n==st.length?'on':''}">${n} min</button>`).join("");
+  el.innerHTML = `${withTitle ? '<h2>Find people for a slot</h2>' : ''}
+    <label>Therapist</label><div class="pills" data-role="th">${ths}</div>
+    <div class="row">
+      <div><label>Day</label><input type="date" data-role="date" value="${META.today}"></div>
+      <div><label>Start time</label><input type="time" step="300" data-role="start" placeholder="14:00"></div>
+    </div>
+    <label>Length</label><div class="pills" data-role="len">${lens}</div>
+    <div class="row">
+      <div><label>Cancelled at <span class="muted">(fills in by itself)</span></label><input type="datetime-local" data-role="cancel" value="${META.now}"></div>
+      <div><label>Kind</label><div class="pills" data-role="kind"><button type="button" class="on" data-k="late cancel">Late cancel</button><button type="button" data-k="no-show">No-show</button></div></div>
+    </div>
+    <div style="margin-top:14px"><button class="primary" data-role="go">Find people</button></div>`;
+  el.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { st.therapist=b.dataset.t; el.querySelectorAll("[data-t]").forEach(x=>x.classList.toggle("on", x===b)); });
+  el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { st.length=+b.dataset.l; el.querySelectorAll("[data-l]").forEach(x=>x.classList.toggle("on", x===b)); });
+  el.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { st.kind=b.dataset.k; el.querySelectorAll("[data-k]").forEach(x=>x.classList.toggle("on", x===b)); });
+  $("[data-role=go]", el).onclick = async () => {
+    const start = $("[data-role=start]", el).value;
+    if (!st.therapist) return toast("Please pick the therapist.");
+    if (!start) return toast("Please enter the start time.");
+    const body = {therapist:st.therapist, date:$("[data-role=date]", el).value, start, length:st.length,
+                  kind:st.kind, cancelled_at:$("[data-role=cancel]", el).value || null};
+    const res = await api("/api/match", body);
+    res._cancel = body.cancelled_at;
+    onResult(res);
+    $("[data-role=start]", el).value = "";
+    try { META = await api("/api/therapists"); } catch(e) {}
+    $("[data-role=cancel]", el).value = META.now;
+  };
+}
+function nowLocal(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+
+/* ---------- result card with offer tracker ---------- */
+function resultCard(res){
+  const div = document.createElement("div");
+  div.className = "card";
+  div._res = res;
+  renderResult(div);
+  return div;
+}
+function renderResult(div){
+  const r = div._res, o = r.offers || {people:{}};
+  let h = `<div class="result-title"><b>${esc(r.title)}${r.auto ? '<span class="tag">from daily report</span>' : ''}</b><span class="small muted">${r.no_show ? "no-show" : esc(r.notice)+"h notice"}</span></div>`;
+  if (r.warning) h += `<div class="note warn">${esc(r.warning)}</div>`;
+  if (o.filled_by) h += `<div class="note ok"><b>Filled by ${esc(o.filled_by)}.</b> Book it in Kneadly and link it to the cancelled booking.</div>`;
+  if (!r.names.length) h += `<div class="nobody">Nobody to offer. <span class="muted">${esc(r.nobody_reason)}</span></div>`;
+  r.names.forEach((n, i) => {
+    const p = o.people[n.pid] || {};
+    const isCur = !o.filled_by && o.current === n.pid;
+    const locked = o.filled_by ? p.status !== "yes" : (!isCur && p.status !== "voicemail" && p.status !== "no");
+    const waiting = p.status === "voicemail" && p.wait_left > 0;
+    const stTxt = p.status ? `${p.status}${p.time ? " at "+p.time : ""}${waiting ? " · next person in "+p.wait_left+" min" : ""}` : (isCur ? "offer now" : (o.filled_by ? "" : "wait"));
+    h += `<div class="person ${isCur?'current':''} ${locked && !isCur ? 'locked':''}">
+      <div class="top"><span class="name">${i+1}. ${esc(n.name)}${n.contact ? `<span class="tag">${esc(n.contact)}</span>` : ""}</span><span class="phone">${esc(n.phone)}</span></div>
+      <div class="why">${esc(n.reason)} · line ${esc(n.pid)}</div>
+      <div class="actions noprint">
+        ${["called","voicemail","yes","no"].map(s => `<button data-s="${s}" data-p="${esc(n.pid)}" data-n="${esc(n.name)}" class="${p.status===s?'sel':''}" ${(o.filled_by && p.status!=='yes') || (locked && p.status!==s && !(p.status==='voicemail' && (s==='yes'||s==='no'))) ? 'disabled' : ''}>${s[0].toUpperCase()+s.slice(1)}</button>`).join("")}
+        <button class="link" data-prev="${esc(n.pid)}">Preview text</button>
+        <span class="chip">${esc(stTxt)}</span>
+      </div></div>`;
+  });
+  if (r.maybe && r.maybe.length){
+    h += `<div class="maybe"><h3>Check by hand <span class="muted small">— not offered automatically</span></h3>` +
+      r.maybe.map(m => `<div class="person"><div class="top"><span class="name">${esc(m.name)}</span><span class="phone">${esc(m.phone)}</span></div><div class="why">${esc(m.why_maybe)}</div></div>`).join("") + `</div>`;
+  }
+  div.innerHTML = h;
+  div.querySelectorAll("[data-s]").forEach(b => b.onclick = async () => {
+    const body = {opening:r.key, pid:b.dataset.p, name:b.dataset.n, status:b.dataset.s, therapist:r.therapist,
+                  date:r.date, start:r.start, length:r.length, notice:r.notice};
+    const nr = await api("/api/offer", body);
+    div._res = nr; renderResult(div);
+    if (b.dataset.s === "yes") toast("Filled. Book it in Kneadly and link it to the cancelled booking.", 5000);
+  });
+  div.querySelectorAll("[data-prev]").forEach(b => b.onclick = async () => {
+    const p = await api("/api/preview", {opening:r.key, pid:b.dataset.prev});
+    toast(`${p.message}  —  ${p.result}. ${p.consent}.`, 9000);
+  });
+}
+
+/* ---------- views ---------- */
+async function loadHome(){
+  const s = await api("/api/status");
+  const c = s.check;
+  const b = $("#readyBadge");
+  b.textContent = c.ready ? "Ready" : "Needs attention";
+  b.className = "status " + (c.ready ? "ready" : "notready");
+  $("#homeNotes").innerHTML = c.items.map(([k,t]) => `<div class="note ${k==='problem'?'bad':'warn'}">${esc(t)}</div>`).join("");
+  const i = c.info || {};
+  $("#homeInfo").textContent = i.waitlist ? `Waitlist: ${i.active} people waiting · ${i.out_of_date} to cross off · ${i.check} to check by hand · run date ${i.today}` : "";
+}
+function initFind(){
+  openingForm($("#findForm"), res => { const box=$("#findResult"); box.innerHTML=""; box.appendChild(resultCard(res)); box.scrollIntoView({behavior:"smooth"}); }, true);
+}
+async function loadMorning(){
+  openingForm($("#morningForm"), () => loadMorning(), false);
+  const m = await api("/api/morning");
+  $("#morningAuto").innerHTML = m.auto_on ? "" : `<div class="note warn small">Automatic overnight cancellations are off until the daily Kneadly report is switched on. Enter them above for now.</div>`;
+  const list = $("#morningList"); list.innerHTML = "";
+  const all = [...m.automatic.map(x => ({...x, _auto:true})), ...m.entered];
+  if (!all.length) list.innerHTML = `<div class="card muted">No cancellations entered yet today.</div>`;
+  all.forEach(r => list.appendChild(resultCard(r)));
+  const n = await api("/api/noshow");
+  let h = `<h3>Tomorrow's call list (no-show risk)</h3>`;
+  if (!n.available) h += `<p class="small muted">${esc(n.message)}</p>`;
+  else if (!n.rows.length) h += `<p class="small muted">Everyone booked for ${esc(n.date)} has confirmed.</p>`;
+  else h += `<p class="small muted">Not confirmed for ${esc(n.date)}. ${n.reminder_on ? "These did not answer either reminder text." : ""} Call the top ones first.</p>
+    <table><tr><th>Time</th><th>Client</th><th>Therapist</th><th>Why</th></tr>${n.rows.map(r=>`<tr><td>${esc(r.time)}</td><td>${esc(r.name)}</td><td>${esc(r.therapist)}</td><td>${esc(r.why)}</td></tr>`).join("")}</table>`;
+  $("#noshowCard").innerHTML = h;
+}
+let lookTimer;
+function lookup(){
+  clearTimeout(lookTimer);
+  lookTimer = setTimeout(async () => {
+    const phone = $("#addPhone").value.trim(), name = $("#addName").value.trim();
+    if (phone.replace(/\D/g,"").length < 7 && name.length < 3) { $("#lookupBox").innerHTML=""; return; }
+    const r = await api(`/api/lookup?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(phone.replace(/\D/g,"").length>=7?"":name)}`);
+    $("#lookupBox").innerHTML = r.found.length ? r.found.map(f => `<div class="note ${f.status==='out of date'?'warn':'ok'}"><b>Already in the book:</b> ${esc(f.name)} · line ${esc(f.line)} · ${esc(f.status)}${f.reason?` (${esc(f.reason)})`:""}<br><span class="small">${esc(f.needs)} · first asked ${esc(f.since)}. Adding a new line updates this person; the newest line wins.</span></div>`).join("") : "";
+    if (r.found.length && !$("#addName").value) $("#addName").value = r.found[0].name;
+  }, 300);
+}
+async function addPerson(){
+  const r = await api("/api/add", {name:$("#addName").value, phone:$("#addPhone").value, note:$("#addNote").value});
+  $("#addDone").innerHTML = `<div class="note ok">Added as line ${esc(r.line)}.</div>`;
+  ["#addName","#addPhone","#addNote"].forEach(s => $(s).value = ""); $("#lookupBox").innerHTML = "";
+}
+let LISTS, listTab = "cross_off";
+async function loadLists(){ LISTS = await api("/api/lists"); renderLists(); }
+function renderLists(){
+  const tabs = [["cross_off","Cross off"],["still_waiting","Still waiting?"],["hard_to_place","Hard to place"],["check","Check by hand"],["unknown_words","Unknown words (Julie)"]];
+  $("#listTabs").innerHTML = tabs.map(([k,t]) => `<button data-k="${k}" class="${k===listTab?'on':''}">${t} (${LISTS[k].length})</button>`).join("");
+  $("#listTabs").querySelectorAll("button").forEach(b => b.onclick = () => { listTab=b.dataset.k; renderLists(); });
+  const L = LISTS[listTab];
+  const intro = {cross_off:"Cross these lines off the notebook.", still_waiting:"No contact for 6 weeks or more. Call to check they still want in, before they reach 2 months.",
+    hard_to_place:"Waiting 4 weeks or more and no late opening has fitted them yet. Consider offering a regular booking.",
+    check:"These people are not offered automatically until you check them.", unknown_words:"Words the program did not understand. Julie can add them to settings/shorthand.ini. Office use."}[listTab];
+  const cols = {cross_off:[["lines","Lines"],["name","Name"],["reason","Why"]], still_waiting:[["line","Line"],["name","Name"],["phone","Phone"],["last","Last contact"],["days","Days"]],
+    hard_to_place:[["line","Line"],["name","Name"],["waited","Days waiting"],["needs","Can take"]], check:[["line","Line"],["name","Name"],["reason","What to check"]],
+    unknown_words:[["line","Line"],["word","Word"],["effect","What the program did"]]}[listTab];
+  $("#listBody").innerHTML = `<p class="small muted">${intro}</p>` + (L.length ? `<table><tr>${cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${L.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c[0]])}</td>`).join("")}</tr>`).join("")}</table>` : `<p>Nothing here.</p>`);
+}
+async function loadReports(){ if (!$("#monthPick").value) $("#monthPick").value = META.today.slice(0,7); loadSummary(); }
+async function loadSummary(){
+  const s = await api("/api/summary?month=" + $("#monthPick").value);
+  const k = (v,t) => `<div class="kpi"><b>${esc(v)}</b><span>${esc(t)}</span></div>`;
+  $("#summaryBody").innerHTML = `<div class="kpis">${k(s.openings,"late openings")}${k(s.refilled,"refilled")}${k(s.rate+"%","refill rate")}${k("$"+s.empty_value,"booked time left empty")}${k(s.program_runs,"openings matched by the program")}${k(s.filled_by_program,"filled through the offer tracker")}</div>
+   <p class="small muted">${s.late_cancels} late cancellations and ${s.no_shows} no-shows. ${s.names_shown} names shown, ${s.offers_made} offers made. Source: ${esc(s.source || "no booking file")}.</p>`;
+}
+async function runFile(){
+  const r = await api("/api/file-openings");
+  const box = $("#fileBody"); box.innerHTML = r.file ? `<p class="small muted">${esc(r.file)} · ${r.openings.length} openings</p>` : `<p class="small muted">No openings file in the Data folder.</p>`;
+  r.openings.forEach(o => { const c = resultCard(o); c.querySelector("b").textContent = (o.label ? o.label+" · " : "") + o.title; box.appendChild(c); });
+}
+async function loadAddons(){
+  const a = await api("/api/addons");
+  const row = (title, on, text, extra="") => `<div class="person"><div class="top"><span class="name">${title}</span><span class="status ${on?'ready':'notready'}">${on?'On':'Off'}</span></div><div class="why">${esc(text)}</div>${extra}</div>`;
+  $("#addonsBody").innerHTML =
+    row("Daily Kneadly report (automatic overnight cancellations, no-show risk list, fresh booking checks)", a.daily_report.on, a.daily_report.text) +
+    row("Text offers, one at a time", a.text_offers.on, a.text_offers.text) +
+    row("Second reminder text", a.second_reminder.on, a.second_reminder.text) +
+    row("Kneadly Direct (optional subscription)", a.kneadly_direct.unlocked, a.kneadly_direct.text,
+      a.kneadly_direct.unlocked ? "" : `<div class="row" style="margin-top:10px"><input id="unlockCode" placeholder="KSW-XXXX-XXXX-XXXX"><button onclick="unlock()">Unlock</button></div>`);
+  const s = await api("/api/status");
+  $("#selfBody").innerHTML = `<span class="status ${s.check.ready?'ready':'notready'}">${s.check.ready?'Ready':'Needs attention'}</span>` +
+    (s.check.items.length ? s.check.items.map(([k,t]) => `<div class="note ${k==='problem'?'bad':'warn'}">${esc(t)}</div>`).join("") : `<p class="small muted">All files found and readable.</p>`) +
+    `<p class="small muted">Files: ${esc(s.check.info?.waitlist || "no waitlist")} · ${esc(s.check.info?.bookings || "no booking file")}. Runs only on this computer; nothing is sent anywhere.</p>`;
+}
+async function unlock(){ await api("/api/unlock", {code:$("#unlockCode").value}); toast("Kneadly Direct unlocked."); loadAddons(); }
+
+(async function start(){
+  META = await api("/api/therapists");
+  $("#addPhone").addEventListener("input", lookup);
+  $("#addName").addEventListener("input", lookup);
+  initFind();
+  show();
+})();
+</script>
+</body>
+</html>
